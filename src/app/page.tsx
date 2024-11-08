@@ -1,95 +1,132 @@
+"use client"; // Add this line at the top
+
+import { fetchPuzzles } from "@/api/puzzleApi"; // Ensure the import path is correct
+import { useState } from "react";
+import { Puzzle } from "@/interfaces/Puzzle";
 import Image from "next/image";
-import styles from "./page.module.css";
+import ChessboardComponent from "../services/chessboardGenerator";
+import { generatePuzzlesPdf } from "@/services/generatePuzzlesPdf";
 
-export default function Home() {
+const Home = () => {
+  // State variables with type annotations
+  const [theme, setTheme] = useState<string>("");
+  const [minRating, setMinRating] = useState<
+    number | undefined
+  >(undefined);
+  const [maxRating, setMaxRating] = useState<
+    number | undefined
+  >(undefined);
+  const [count, setCount] = useState<number>(5); // Default count
+  const [puzzles, setPuzzles] = useState<Puzzle[]>([]); // State to hold puzzles with images
+  const [loading, setLoading] = useState<boolean>(false); // State for loading status
+  console.log("puzzles:", puzzles);
+  // Handle form submission
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
+    e.preventDefault();
+    setLoading(true); // Set loading to true when fetching data
+
+    const data = await fetchPuzzles(
+      theme,
+      minRating,
+      maxRating,
+      count
+    ); // Fetch puzzles directly
+    console.log("Fetched puzzles:", data); // Log fetched puzzles
+    setPuzzles(data); // Update puzzles state with fetched data
+    setLoading(false); // Set loading to false after data is fetched
+  };
+
+  // Handle PDF generation
+  const handleGeneratePdf = () => {
+    if (puzzles.length > 0) {
+      generatePuzzlesPdf(puzzles); // Call the generatePdf function with the puzzles
+    } else {
+      alert("No puzzles to generate PDF.");
+    }
+  };
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div>
+      <h1>PuzzleCraft</h1>
+      <form onSubmit={handleSubmit}>
+        <label>
+          Theme:
+          <input
+            type="text"
+            value={theme}
+            onChange={(e) => setTheme(e.target.value)}
+          />
+        </label>
+        <br />
+        <label>
+          Min Rating:
+          <input
+            type="number"
+            value={minRating || ""} // Handle undefined case
+            onChange={(e) =>
+              setMinRating(
+                e.target.value
+                  ? parseInt(e.target.value)
+                  : undefined
+              )
+            }
+          />
+        </label>
+        <br />
+        <label>
+          Max Rating:
+          <input
+            type="number"
+            value={maxRating || ""} // Handle undefined case
+            onChange={(e) =>
+              setMaxRating(
+                e.target.value
+                  ? parseInt(e.target.value)
+                  : undefined
+              )
+            }
+          />
+        </label>
+        <br />
+        <label>
+          Count:
+          <input
+            type="number"
+            value={count}
+            onChange={(e) =>
+              setCount(parseInt(e.target.value))
+            }
+          />
+        </label>
+        <br />
+        <button type="submit">Get Puzzles</button>
+      </form>
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      {/* Display loading status */}
+      {loading && <p>Loading...</p>}
+
+      {/* Render ChessboardComponents for each puzzle */}
+      {/* Render ChessboardComponents for each puzzle */}
+      <div>
+        {puzzles.map((puzzle) => (
+          <div
+            key={puzzle.puzzleId}
+            style={{ marginBottom: "20px" }}
           >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+            <ChessboardComponent
+              fen={puzzle.fen}
+              id={`board-${puzzle.puzzleId}`}
+            />{" "}
+          </div>
+        ))}
+      </div>
+      <button onClick={handleGeneratePdf}>
+        Generate PDF
+      </button>
     </div>
   );
-}
+};
+
+export default Home;
